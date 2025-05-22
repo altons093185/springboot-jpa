@@ -31,6 +31,8 @@ public class LoginRestController {
 		try {
 			UserCert cert = certService.getCert(username, password);
 			session.setAttribute("userCert", cert);
+			System.out.println("登入成功 session ID = " + session.getId());
+
 			return ResponseEntity.ok(ApiResponse.success("登入成功", null));
 		} catch (CertException e) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

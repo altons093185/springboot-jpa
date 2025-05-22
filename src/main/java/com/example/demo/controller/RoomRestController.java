@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,14 +12,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.SpringbootJpaApplication;
 import com.example.demo.exception.RoomException;
 import com.example.demo.model.dto.RoomDto;
 import com.example.demo.response.ApiResponse;
 import com.example.demo.service.RoomService;
+
+import jakarta.validation.Valid;
 
 /**
 請求方法 URL 路徑              功能說明      請求參數                                   回應
@@ -36,20 +39,10 @@ DELETE /rest/room/{roomId} 刪除指定房間    roomId (路徑參數，房間 I
 
 public class RoomRestController {
 
-	private final SpringbootJpaApplication springbootJpaApplication;
-
 	@Autowired
 	private RoomService roomService;
 
-	RoomRestController(SpringbootJpaApplication springbootJpaApplication) {
-		this.springbootJpaApplication = springbootJpaApplication;
-	}
-
-	/**
-	 * 取得所有房間列表
-	 * 
-	 * @return 成功時返回所有房間的列表 payload 及成功訊息。
-	 */
+	// 取得所有房間列表
 	@GetMapping
 	public ResponseEntity<ApiResponse<List<RoomDto>>> findAllRooms() {
 		List<RoomDto> roomDtos = roomService.findAllRooms(); // payload
@@ -57,57 +50,47 @@ public class RoomRestController {
 		return ResponseEntity.ok(ApiResponse.success(message, roomDtos));
 	}
 
-	/**
-	 * 取得指定房間資料
-	 * 
-	 * @param roomId 房間 ID
-	 * @return 成功時返回指定房間資料及 payload 成功訊息。
-	 */
-
-	@GetMapping("/{roomId}")
-	public ResponseEntity<ApiResponse<RoomDto>> findRoomById(@PathVariable Integer roomId) {
-
-		//		try {
-		RoomDto roomDto = roomService.getRoomById(roomId); // payload
-		String message = "查詢成功";
-		return ResponseEntity.ok(ApiResponse.success(message, roomDto));
-		//		} catch (Exception e) {
-		//			String message = "查無資料";
-		//			return ResponseEntity.badRequest().body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message));
-		//
-		//		}
-
+	// 新增房間
+	@PostMapping
+	public ResponseEntity<ApiResponse<RoomDto>> addRoom(@Valid @RequestBody RoomDto roomDto,
+			BindingResult bindingResult) {
+		if (bindingResult.hasErrors()) {
+			//return ResponseEntity.badRequest().body(ApiResponse.error(500, "新增失敗"));
+			//return ResponseEntity.ok(ApiResponse.error(500, "新增失敗:" + bindingResult.getAllErrors().get(0).getDefaultMessage()));
+			throw new RoomException("新增失敗:" + bindingResult.getAllErrors().get(0).getDefaultMessage());
+		}
+		roomService.addRoom(roomDto);
+		return ResponseEntity.ok(ApiResponse.success("Room 新增成功", roomDto));
 	}
 
-	//	// 取得單筆
-	//	@GetMapping("/{roomId}")
-	//	public ResponseEntity<ApiResponse<RoomDto>> getRoom(@PathVariable Integer roomId) {
-	//		RoomDto roomDto = roomService.getRoomById(roomId);
-	//		return ResponseEntity.ok(ApiResponse.success("Room 查詢單筆成功", roomDto));
-	//	}
-
-	//新增單筆
-	@PostMapping()
-	public ResponseEntity<ApiResponse<RoomDto>> addRome(@PathVariable Integer roomId) {
-		return null;
+	// 取得單筆
+	@GetMapping("/{roomId}")
+	public ResponseEntity<ApiResponse<RoomDto>> getRoom(@PathVariable Integer roomId) {
+		RoomDto roomDto = roomService.getRoomById(roomId);
+		return ResponseEntity.ok(ApiResponse.success("Room 查詢單筆成功", roomDto));
 	}
 
 	// 修改房間
 	@PutMapping("/{roomId}")
-	public ResponseEntity<ApiResponse<RoomDto>> updateRoom(@PathVariable Integer roomId) {
-		return null;
+	public ResponseEntity<ApiResponse<RoomDto>> updateRoom(@PathVariable Integer roomId,
+			@Valid @RequestBody RoomDto roomDto, BindingResult bindingResult) {
+		if (bindingResult.hasErrors()) {
+			throw new RoomException("修改失敗:" + bindingResult.getAllErrors().get(0).getDefaultMessage());
+		}
+		roomService.updateRoom(roomId, roomDto);
+		return ResponseEntity.ok(ApiResponse.success("Room 修改成功", roomDto));
 	}
 
 	// 刪除房間
 	@DeleteMapping("/{roomId}")
-	public ResponseEntity<ApiResponse<RoomDto>> deleteRoom(@PathVariable Integer roomId) {
-		return null;
-
+	public ResponseEntity<ApiResponse<Integer>> deleteRoom(@PathVariable Integer roomId) {
+		roomService.deleteRoom(roomId);
+		return ResponseEntity.ok(ApiResponse.success("Room 刪除成功", roomId));
 	}
 
 	// 錯誤處理
 	@ExceptionHandler({ RoomException.class })
 	public ResponseEntity<ApiResponse<Void>> handleRoomExceptions(RoomException e) {
-		return ResponseEntity.status(500).body(ApiResponse.error(500, e.getMessage()));
+		return ResponseEntity.ok(ApiResponse.error(500, e.getMessage()));
 	}
 }
