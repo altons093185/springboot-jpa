@@ -21,20 +21,22 @@ public class LoginRestFilter extends HttpFilter {
 			throws IOException, ServletException {
 		String method = request.getMethod();
 		HttpSession session = request.getSession();
-		System.out.println("過濾器中 session ID = " + session.getId());
+		//		System.out.println(method);
+		//		System.out.println("過濾器中 session ID = " + session.getId());
 		//		System.out.println(session.getAttribute("userCert"));
 		// 開放 GET 查詢
-		if ("GET".equalsIgnoreCase(method)) {
+		if ("GET".equalsIgnoreCase(method) || "OPTIONS".equalsIgnoreCase(method)) {
 			chain.doFilter(request, response);
 			return;
 		}
 
 		// 非 GET 時驗證登入狀態
 		if (session != null && session.getAttribute("userCert") != null) {
-			System.out.println("HI");
+			//			System.out.println("HI");
 			chain.doFilter(request, response); // 已登入，放行
 		} else {
 			// 未登入，回傳 401
+			//			System.out.println("error");
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			response.setContentType("application/json;charset=UTF-8");
 			ApiResponse<?> apiResponse = ApiResponse.error(401, "請先登入");
